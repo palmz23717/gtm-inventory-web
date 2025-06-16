@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>GEOTECH MONITORING INVENTORY</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #111;
+      color: #fff;
+      background-image: url('https://images.unsplash.com/photo-1581092021824-6c6fef72038b');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .box {
+      background: rgba(0, 0, 0, 0.85);
+      padding: 40px;
+      border-radius: 16px;
+      border: 2px solid #ffcc00;
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      color: #ffcc00;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #ffcc00;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #e6b800;
+    }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>GEOTECH MONITORING INVENTORY</h1>
+
+    <input type="email" id="email" placeholder="อีเมล">
+    <input type="password" id="password" placeholder="รหัสผ่าน">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+
+    <p id="error"></p>
+    <p style="margin-top: 15px;">
+  <a href="register.html" style="color:#ffcc00; text-decoration:none; margin-right: 10px;">สมัครสมาชิก</a>
+  <a href="reset.html" style="color:#ffcc00; text-decoration:none;">ลืมรหัสผ่าน?</a>
+</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvvyS-3l3SCJ7QADCoUCdpq0ghrCS5zE0",
+      authDomain: "store-68bb2.firebaseapp.com",
+      projectId: "store-68bb2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.login = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const errorEl = document.getElementById("error");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        errorEl.textContent = "เข้าสู่ระบบไม่สำเร็จ: " + error.message;
+      }
+    };
+
+    onAuthStateChanged(auth, user => {
+  if (user) {
+    const confirmGo = confirm("คุณได้เข้าสู่ระบบไว้แล้ว ต้องการไป Dashboard เลยหรือไม่?");
+    if (confirmGo) {
+      window.location.href = "dashboard.html";
+    }
+  }
+});
+  </script>
+</body>
+</html>

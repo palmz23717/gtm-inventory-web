@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>GEOTECH MONITORING INVENTORY</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1c1c1c;
+      color: #f1c40f;
+      padding: 30px;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #f1c40f;
+      font-size: 34px;
+      margin-bottom: 40px;
+      border-bottom: 3px dashed #f1c40f;
+      padding-bottom: 10px;
+    }
+
+    h2 {
+      color: #f39c12;
+      margin-top: 50px;
+      margin-bottom: 10px;
+      border-left: 5px solid #f1c40f;
+      padding-left: 10px;
+    }
+
+    .category-section {
+      margin-bottom: 40px;
+    }
+
+    .item-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: flex-start;
+    }
+
+    .item-card {
+      background: #2e2e2e;
+      border: 2px solid #f1c40f;
+      border-radius: 10px;
+      padding: 15px;
+      width: calc(12.5% - 20px); /* 8 ชิ้นต่อแถว */
+      text-align: center;
+      color: white;
+      transition: transform 0.2s, box-shadow 0.3s;
+    }
+
+    .item-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 10px #f1c40f;
+    }
+
+    .item-card img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border: 1px solid #f1c40f;
+    }
+
+    .progress-bar {
+      background: #444;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 10px;
+      margin: 6px 0;
+    }
+
+    .progress {
+      background: #f1c40f;
+      height: 100%;
+    }
+
+    .item-card button {
+      margin-top: 8px;
+      padding: 6px 12px;
+      background-color: #f1c40f;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .item-card button:hover {
+      background-color: #d4ac0d;
+    }
+
+    @media (max-width: 1200px) {
+      .item-card {
+        width: calc(25% - 20px); /* 4 ชิ้นต่อแถว */
+      }
+    }
+
+    @media (max-width: 768px) {
+      .item-card {
+        width: calc(50% - 20px); /* 2 ชิ้นในมือถือ */
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🛠️ GEOTECH MONITORING INVENTORY</h1>
+  <div id="container"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvvyS-3l3SCJ7QADCoUCdpq0ghrCS5zE0",
+      authDomain: "store-68bb2.firebaseapp.com",
+      projectId: "store-68bb2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const container = document.getElementById("container");
+
+    const categories = [
+      "Plumbing Equipment",
+      "Electrical Equipment",
+      "Tools",
+      "Construction Materials",
+      "Safety Equipment",
+      "Field Testing Equipment",
+      "Chemicals",
+      "Office Supplies",
+      "Other"
+    ];
+
+    async function loadItems() {
+      const querySnapshot = await getDocs(collection(db, "item"));
+      const itemsByCategory = {};
+
+      categories.forEach(cat => itemsByCategory[cat] = []);
+
+      querySnapshot.forEach((docSnap) => {
+        const item = docSnap.data();
+        const id = docSnap.id;
+        const category = item.category || "Other";
+        item.id = id;
+        if (itemsByCategory[category]) {
+          itemsByCategory[category].push(item);
+        } else {
+          itemsByCategory["Other"].push(item);
+        }
+      });
+
+      categories.forEach(category => {
+        const section = document.createElement("div");
+        section.className = "category-section";
+        section.innerHTML = `<h2>${category}</h2>`;
+
+        const grid = document.createElement("div");
+        grid.className = "item-grid";
+
+        if (itemsByCategory[category].length === 0) {
+          section.innerHTML += "<p>ไม่มีรายการในหมวดนี้</p>";
+        } else {
+          itemsByCategory[category].forEach(item => {
+            const percent = Math.round((item.stock / item.max) * 100);
+            const card = document.createElement("div");
+            card.className = "item-card";
+            card.innerHTML = `
+              <img src="${item.image}" alt="${item.name}">
+              <h4>${item.name}</h4>
+              <div class="progress-bar"><div class="progress" style="width: ${percent}%"></div></div>
+              <small>คงเหลือ: ${item.stock} / ${item.max}</small><br>
+              <button onclick="location.href='request.html?item=${encodeURIComponent(item.name)}'">เบิกของ</button>
+            `;
+            grid.appendChild(card);
+          });
+        }
+
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    }
+
+    loadItems();
+  </script>
+</body>
+</html>

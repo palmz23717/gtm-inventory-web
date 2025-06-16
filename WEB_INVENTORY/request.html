@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เบิกอุปกรณ์ - GEOTECH MONITORING INVENTORY</title>
+  <style>
+    body {
+      background: url("https://images.unsplash.com/photo-1581094651188-7cfb3f9cbbd2") no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: white;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .form-container {
+      background-color: #1e1e1e;
+      border-left: 8px solid yellow;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    h2 {
+      text-align: center;
+      color: yellow;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #f5f5f5;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      background-color: yellow;
+      color: black;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="form-container">
+      <h2>เบิกอุปกรณ์</h2>
+      <form id="request-form">
+        <label for="user">ชื่อผู้เบิก:</label>
+        <input type="text" id="user" required>
+
+        <label for="item">ชื่ออุปกรณ์:</label>
+        <select id="item" required></select>
+
+        <label for="amount">จำนวนที่ต้องการเบิก:</label>
+        <input type="number" id="amount" min="1" required>
+
+        <button type="submit">ยืนยันการเบิก</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvvyS-3l3SCJ7QADCoUCdpq0ghrCS5zE0",
+      authDomain: "store-68bb2.firebaseapp.com",
+      projectId: "store-68bb2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById("request-form");
+    const userInput = document.getElementById("user");
+    const itemSelect = document.getElementById("item");
+    const amountInput = document.getElementById("amount");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedItem = urlParams.get("item");
+
+    async function loadItems() {
+      const snapshot = await getDocs(collection(db, "item"));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = data.name;
+
+        if (data.name === preselectedItem) {
+          option.selected = true;
+        }
+
+        itemSelect.appendChild(option);
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const user = userInput.value.trim();
+      const amount = parseInt(amountInput.value);
+      const itemId = itemSelect.value;
+
+      if (!user || isNaN(amount) || amount <= 0) {
+        alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        return;
+      }
+
+      const itemRef = doc(db, "item", itemId);
+      const itemSnap = await getDocs(collection(db, "item"));
+      let currentStock = 0;
+      let itemName = "";
+
+      itemSnap.forEach(docSnap => {
+        if (docSnap.id === itemId) {
+          currentStock = docSnap.data().stock;
+          itemName = docSnap.data().name;
+        }
+      });
+
+      if (amount > currentStock) {
+        alert("❌ จำนวนสินค้าไม่เพียงพอ");
+        return;
+      }
+
+      await updateDoc(itemRef, { stock: currentStock - amount });
+
+      await addDoc(collection(db, "log"), {
+        user: user,
+        item: itemName,
+        amount: amount,
+        timestamp: new Date()
+      });
+
+      alert("✅ เบิกของเรียบร้อย");
+      window.location.href = "home.html";
+    });
+
+    loadItems();
+  </script>
+</body>
+</html>

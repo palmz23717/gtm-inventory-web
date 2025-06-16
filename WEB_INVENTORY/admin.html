@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - จัดการสินค้า</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('https://images.unsplash.com/photo-1581091012184-5c7f8e06c743?fit=crop&w=1920&q=80') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.85);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      color: #FFD700;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    form, .item-list {
+      max-width: 600px;
+      margin: auto;
+      background-color: #1c1c1c;
+      padding: 20px;
+      border-radius: 16px;
+      border: 2px solid #FFD700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+      margin-bottom: 40px;
+    }
+
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      background-color: #FFD700;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #e6c200;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #444;
+    }
+
+    .item span {
+      flex: 1;
+    }
+
+    .item button {
+      width: auto;
+      margin-left: 5px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h1>จัดการสินค้า (Admin)</h1>
+
+    <form id="addForm">
+      <input type="text" id="name" placeholder="ชื่อสินค้า" required />
+      <input type="number" id="max" placeholder="จำนวนทั้งหมด (Max)" required min="0" />
+      <input type="number" id="stock" placeholder="จำนวนคงเหลือ (Stock)" required min="0" />
+      <select id="category" required>
+        <option value="">-- เลือกหมวดหมู่ --</option>
+        <option value="Plumbing Equipment">Plumbing Equipment</option>
+        <option value="Electrical Equipment">Electrical Equipment</option>
+        <option value="Tools">Tools</option>
+        <option value="Construction Materials">Construction Materials</option>
+        <option value="Safety Equipment">Safety Equipment</option>
+        <option value="Field Testing Equipment">Field Testing Equipment</option>
+        <option value="Chemicals">Chemicals</option>
+        <option value="Office Supplies">Office Supplies</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="text" id="image" placeholder="URL รูปภาพสินค้า" />
+      <button type="submit">เพิ่มสินค้า</button>
+    </form>
+
+    <div class="item-list" id="itemList"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, deleteDoc,
+      doc, getDocs, updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvvyS-3l3SCJ7QADCoUCdpq0ghrCS5zE0",
+      authDomain: "store-68bb2.firebaseapp.com",
+      projectId: "store-68bb2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById("addForm");
+    const itemList = document.getElementById("itemList");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const max = parseInt(document.getElementById("max").value);
+      const stock = parseInt(document.getElementById("stock").value);
+      const category = document.getElementById("category").value;
+      const image = document.getElementById("image").value.trim();
+
+      if (!name || isNaN(stock) || isNaN(max) || !category) {
+        alert("กรุณากรอกข้อมูลให้ถูกต้อง");
+        return;
+      }
+
+      await addDoc(collection(db, "item"), {
+        name,
+        max,
+        stock,
+        category,
+        image
+      });
+
+      alert("เพิ่มสินค้าสำเร็จแล้ว!");
+      form.reset();
+      loadItems();
+    });
+
+    async function loadItems() {
+      itemList.innerHTML = "";
+      const querySnapshot = await getDocs(collection(db, "item"));
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = `
+          <span>${data.name} (${data.stock} / ${data.max})</span>
+          <button onclick="editItem('${docSnap.id}', ${data.stock}, ${data.max})">แก้ไข</button>
+          <button onclick="deleteItem('${docSnap.id}')">ลบ</button>
+        `;
+        itemList.appendChild(item);
+      });
+    }
+
+    window.deleteItem = async function(id) {
+      if (confirm("คุณแน่ใจว่าต้องการลบสินค้านี้?")) {
+        await deleteDoc(doc(db, "item", id));
+        alert("ลบสินค้าเรียบร้อยแล้ว");
+        loadItems();
+      }
+    };
+
+    window.editItem = async function(id, oldStock, oldMax) {
+      const newStock = prompt("แก้ไขจำนวนคงเหลือ (Stock):", oldStock);
+      const newMax = prompt("แก้ไขจำนวนทั้งหมด (Max):", oldMax);
+
+      if (newStock !== null && newMax !== null) {
+        const stockVal = parseInt(newStock);
+        const maxVal = parseInt(newMax);
+
+        if (!isNaN(stockVal) && !isNaN(maxVal)) {
+          const itemRef = doc(db, "item", id);
+          await updateDoc(itemRef, {
+            stock: stockVal,
+            max: maxVal
+          });
+          alert("อัปเดตข้อมูลเรียบร้อยแล้ว");
+          loadItems();
+        } else {
+          alert("กรุณากรอกตัวเลขที่ถูกต้อง");
+        }
+      }
+    };
+
+    loadItems();
+  </script>
+</body>
+</html>
